@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Studio - Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 md:p-8 font-sans text-gray-800">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        
+        <div class="text-center space-y-2 mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">🪄 AI Studio (Multi-Key)</h1>
+            <p class="text-gray-500">Sistem cerdas otomatis berganti API Key jika limit harian habis. Watermark aktif.</p>
+        </div>
+
+        <!-- PENGATURAN -->
+        <div class="mb-6 p-5 bg-white border border-gray-200 shadow-sm rounded-xl space-y-4">
+            <h3 class="font-bold border-b pb-2 text-gray-700">Konfigurasi Koneksi</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-gray-600">URL Google Apps Script:</label>
+                    <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" 
+                           class="w-full p-2 border rounded outline-none focus:ring-2 focus:ring-blue-400 text-sm font-mono bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-gray-600">Token Keamanan Aplikasi:</label>
+                    <input type="password" id="appToken" placeholder="Masukkan token rahasia..." value="token-rahasia-senrima-2026"
+                           class="w-full p-2 border rounded outline-none focus:ring-2 focus:ring-blue-400 text-sm bg-gray-50">
+                </div>
+            </div>
+            <button id="loadDbBtn" class="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2.5 px-4 rounded-lg text-sm w-full transition-colors shadow">
+                Koneksikan ke Database Sheets
+            </button>
+            <p id="dbStatus" class="text-xs font-medium"></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Kolom Input (Kiri) -->
+            <div class="space-y-6">
+                
+                <!-- Input 1 -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        Gambar 1: Latar / Referensi
+                    </h3>
+                    <select id="driveFileSelect" disabled class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-green-500 bg-gray-100 disabled:opacity-60 cursor-pointer text-sm">
+                        <option value="">-- Menunggu Database --</option>
+                    </select>
+                </div>
+
+                <!-- Input 2 -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Gambar 2: Objek Utama (Lokal)
+                    </h3>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors">
+                        <input type="file" id="localImage" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer mb-2">
+                        <div id="previewLocalContainer" class="hidden mt-3">
+                            <img id="previewLocalImg" class="max-h-32 object-contain rounded inline-block shadow-sm mx-auto">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-gray-800">Instruksi Penggabungan AI</h3>
+                    <textarea id="promptText" rows="3" placeholder="Contoh: Ganti background gambar 2 menggunakan pemandangan dari gambar 1." 
+                              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none resize-none text-sm"></textarea>
+                    
+                    <button id="generateBtn" disabled class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md transform active:scale-[0.98]">
+                        Mulai Proses AI
+                    </button>
+                    
+                    <div id="statusMessage" class="hidden p-3 rounded-lg text-sm font-medium text-center"></div>
+                </div>
+            </div>
+
+            <!-- Kolom Output (Kanan) -->
+            <div class="bg-white border rounded-2xl p-6 shadow-sm flex flex-col items-center min-h-[500px]">
+                <h2 class="font-bold text-gray-800 border-b w-full pb-3 mb-4 text-center">Preview Hasil (Dilindungi)</h2>
+                
+                <div class="flex-grow flex flex-col items-center justify-center w-full relative">
+                    <div id="emptyState" class="text-center text-gray-400">
+                        <svg class="w-16 h-16 mx-auto text-gray-200 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <p class="text-sm">Gambar hasil akan muncul di sini.</p>
+                    </div>
+
+                    <div id="loadingState" class="hidden flex-col items-center text-purple-600 space-y-4">
+                        <svg class="animate-spin h-12 w-12" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <div class="text-center">
+                            <p class="font-bold animate-pulse text-lg">AI Sedang Bekerja...</p>
+                            <p class="text-xs text-gray-500 font-medium mt-1">Menggabungkan gambar & memeriksa kuota API</p>
+                        </div>
+                    </div>
+
+                    <div id="canvasContainer" class="hidden w-full flex justify-center">
+                        <canvas id="resultCanvas" class="max-h-[450px] max-w-full object-contain rounded-lg shadow-xl border-4 border-gray-100" 
+                                style="-webkit-user-drag: none; user-select: none; pointer-events: auto;" 
+                                oncontextmenu="return false;"
+                                title="Silakan Screenshot hasil ini."></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const gasUrlInput = document.getElementById('gasUrl');
+        const appTokenInput = document.getElementById('appToken');
+        const loadDbBtn = document.getElementById('loadDbBtn');
+        const dbStatus = document.getElementById('dbStatus');
+        
+        const driveSelect = document.getElementById('driveFileSelect');
+        const localFileInput = document.getElementById('localImage');
+        const previewLocalContainer = document.getElementById('previewLocalContainer');
+        const previewLocalImg = document.getElementById('previewLocalImg');
+        const promptInput = document.getElementById('promptText');
+        const generateBtn = document.getElementById('generateBtn');
+        
+        const emptyState = document.getElementById('emptyState');
+        const loadingState = document.getElementById('loadingState');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let localBase64String = null;
+        let isDbLoaded = false;
+
+        // 1. Memuat Database dari Sheets
+        loadDbBtn.addEventListener('click', async () => {
+            const url = gasUrlInput.value.trim();
+            if (!url) { alert("Masukkan URL GAS!"); return; }
+
+            loadDbBtn.disabled = true;
+            loadDbBtn.textContent = "Mengambil Data...";
+            dbStatus.textContent = "Menghubungi server Google Sheets...";
+            dbStatus.className = "text-xs font-medium text-blue-500";
+
+            try {
+                const response = await fetch(`${url}?action=getFiles`);
+                if (!response.ok) throw new Error("Gagal terhubung ke GAS (Cek URL atau Izin)");
+                
+                const result = await response.json();
+                if (result.success) {
+                    driveSelect.innerHTML = '<option value="">-- Pilih Referensi Gambar --</option>';
+                    
+                    if(result.files.length === 0) {
+                        throw new Error("Sheet DatabaseGambar kosong atau format salah.");
+                    }
+
+                    result.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.idFile;    
+                        option.textContent = file.namaFile; 
+                        driveSelect.appendChild(option);
+                    });
+
+                    driveSelect.disabled = false;
+                    driveSelect.classList.remove('bg-gray-100');
+                    driveSelect.classList.add('bg-white');
+                    dbStatus.textContent = `✓ Sukses. ${result.files.length} gambar siap digunakan.`;
+                    dbStatus.className = "text-xs font-bold text-green-600";
+                    isDbLoaded = true;
+                    checkReadyState();
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (err) {
+                dbStatus.textContent = "Error: " + err.message;
+                dbStatus.className = "text-xs font-bold text-red-500";
+            } finally {
+                loadDbBtn.disabled = false;
+                loadDbBtn.textContent = "Refresh Database";
+            }
+        });
+
+        // 2. Handle Gambar Lokal
+        localFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                localBase64String = null;
+                previewLocalContainer.classList.add('hidden');
+                checkReadyState();
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                localBase64String = event.target.result;
+                previewLocalImg.src = localBase64String;
+                previewLocalContainer.classList.remove('hidden');
+                checkReadyState();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        driveSelect.addEventListener('change', checkReadyState);
+        promptInput.addEventListener('input', checkReadyState);
+
+        function checkReadyState() {
+            const hasDrive = driveSelect.value !== "";
+            const hasLocal = localBase64String !== null;
+            const hasPrompt = promptInput.value.trim() !== "";
+
+            if ((hasDrive || hasLocal) && hasPrompt && isDbLoaded) {
+                generateBtn.disabled = false;
+            } else {
+                generateBtn.disabled = true;
+            }
+        }
+
+        // 3. Proses Pengiriman ke GAS
+        generateBtn.addEventListener('click', async () => {
+            const gasUrl = gasUrlInput.value.trim();
+            const token = appTokenInput.value.trim();
+            const driveId = driveSelect.value;
+            const prompt = promptInput.value.trim();
+
+            generateBtn.disabled = true;
+            emptyState.classList.add('hidden');
+            canvasContainer.classList.add('hidden');
+            statusMessage.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            loadingState.classList.add('flex');
+
+            const payloadData = {
+                appToken: token,
+                prompt: prompt,
+                driveFileId: driveId || null,
+                localImage: localBase64String || null
+            };
+
+            try {
+                // Proses ini mungkin memakan waktu agak lama (10-30 detik) jika limit habis 
+                // karena GAS akan mencoba key satu per satu.
+                const response = await fetch(gasUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(payloadData)
+                });
+
+                if (!response.ok) throw new Error(`HTTP Server Error: ${response.status}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const ctx = resultCanvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = () => {
+                        resultCanvas.width = img.width;
+                        resultCanvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+
+                        // Watermark @senri.ma
+                        const watermarkText = "@senri.ma";
+                        const fontSize = Math.max(30, Math.floor(img.width * 0.08)); 
+                        ctx.font = `bold ${fontSize}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        // Bayangan tulisan agar makin terbaca
+                        ctx.shadowColor = "rgba(0,0,0,0.8)";
+                        ctx.shadowBlur = 10;
+                        ctx.shadowOffsetX = 3;
+                        ctx.shadowOffsetY = 3;
+
+                        ctx.lineWidth = Math.max(2, Math.floor(fontSize * 0.05));
+                        ctx.strokeStyle = 'black';
+                        ctx.strokeText(watermarkText, resultCanvas.width / 2, resultCanvas.height / 2);
+
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                        ctx.fillText(watermarkText, resultCanvas.width / 2, resultCanvas.height / 2);
+
+                        // Matikan shadow untuk operasi lain (jika ada)
+                        ctx.shadowColor = "transparent";
+
+                        canvasContainer.classList.remove('hidden');
+                        
+                        statusMessage.innerHTML = '✨ <b>Sukses!</b> Silakan Screenshot (SS) gambar di atas.';
+                        statusMessage.className = 'p-3 rounded-lg text-sm font-medium text-center bg-green-100 text-green-800 border border-green-200 mt-2 block';
+                    };
+                    img.src = result.image;
+                } else {
+                    throw new Error(result.error);
+                }
+
+            } catch (error) {
+                console.error(error);
+                let errText = error.message;
+                // Buat pesan error lebih ramah jika semua key habis
+                if (errText.includes("SEMUA API Key telah habis limit")) {
+                    errText = "⚠️ Semua kuota AI (10 API Key) telah habis digunakan hari ini. Sistem akan mereset kuota pada tengah malam.";
+                }
+                
+                statusMessage.innerHTML = errText;
+                statusMessage.className = 'p-3 rounded-lg text-sm font-bold text-center bg-red-100 text-red-700 border border-red-200 mt-2 block';
+                emptyState.classList.remove('hidden');
+            } finally {
+                loadingState.classList.add('hidden');
+                loadingState.classList.remove('flex');
+                checkReadyState();
+            }
+        });
+    </script>
+</body>
+</html>
